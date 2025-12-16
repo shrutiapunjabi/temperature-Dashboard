@@ -29,45 +29,6 @@ from pathlib import Path
 
 st.set_page_config(page_title="Temperature Forecast Dashboard", layout="wide", initial_sidebar_state="expanded")
 
-def set_background(image_file):
-    img_bytes = Path(image_file).read_bytes()
-    encoded = base64.b64encode(img_bytes).decode()
-
-    st.markdown(
-        f"""
-        <style>
-        /* FULL PAGE BACKGROUND */
-        html, body {{
-            background-image: url("data:image/jpg;base64,{encoded}");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }}
-
-        /* MAIN APP CONTAINER */
-        [data-testid="stAppViewContainer"] {{
-            backdrop-filter: blur(14px);
-            background-color: rgba(0, 0, 0, 0.55);
-        }}
-
-        /* SIDEBAR */
-        section[data-testid="stSidebar"] {{
-            backdrop-filter: blur(18px);
-            background-color: rgba(0, 0, 0, 0.65);
-        }}
-
-        /* CONTENT CARDS */
-        .block-container {{
-            border-radius: 18px;
-            padding: 2rem;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-# CALL IT IMMEDIATELY
-set_background("background.jpg")
 
 
 # ---------------------------
@@ -114,7 +75,42 @@ html, body, .stApp {
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
+
+def set_background(image_file):
+    img_bytes = Path(image_file).read_bytes()
+    encoded = base64.b64encode(img_bytes).decode()
+
+    st.markdown(
+        f"""
+        <style>
+        /* ACTUAL STREAMLIT APP BACKGROUND */
+        [data-testid="stAppViewContainer"] {{
+            background-image: url("data:image/jpg;base64,{encoded}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+
+        /* TRANSPARENT LAYER FOR GLASS EFFECT */
+        .block-container {{
+            background-color: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(14px);
+            border-radius: 18px;
+        }}
+
+        /* SIDEBAR */
+        section[data-testid="stSidebar"] {{
+            background-color: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(18px);
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.markdown(CSS, unsafe_allow_html=True)
 set_background("background.jpg")
+
 
 
 # ---------------------------
@@ -919,6 +915,7 @@ elif page == "Forecast & Downloads":
 st.markdown("---")
 st.markdown("<div style='color:#cfe9ff; font-weight:700'>Data sample</div>", unsafe_allow_html=True)
 st.dataframe(df.head(50))
+
 
 
 
