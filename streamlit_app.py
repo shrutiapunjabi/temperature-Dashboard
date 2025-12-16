@@ -22,6 +22,45 @@ import matplotlib.pyplot as plt
 import io
 from PIL import Image
 
+import base64
+import streamlit as st
+from pathlib import Path
+
+def add_bg_from_local(image_file):
+    img_bytes = Path(image_file).read_bytes()
+    encoded = base64.b64encode(img_bytes).decode()
+
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("data:image/jpg;base64,{encoded}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+
+        /* Glass / blur effect for main content */
+        section[data-testid="stSidebar"],
+        div[data-testid="stAppViewContainer"] {{
+            backdrop-filter: blur(12px);
+            background-color: rgba(0, 0, 0, 0.55);
+        }}
+
+        /* Make cards look nicer */
+        .block-container {{
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Call the function
+add_bg_from_local("background.jpg")
+
 # ---------------------------
 # Page config
 # ---------------------------
@@ -865,4 +904,5 @@ elif page == "Forecast & Downloads":
 st.markdown("---")
 st.markdown("<div style='color:#cfe9ff; font-weight:700'>Data sample</div>", unsafe_allow_html=True)
 st.dataframe(df.head(50))
+
 
