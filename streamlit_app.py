@@ -280,7 +280,7 @@ PLOTLY_TEMPLATE = "plotly_dark" if theme == "Dark" else "plotly_white"
 # ---------------------------
 if page == "Overview":
     st.header("Overview — Today & Forecast glance")
-    st.markdown("Beautiful summary, 14-day sparklines, hourly carousel and 7-day cards.")
+    #st.markdown("Beautiful summary, 14-day sparklines, hourly carousel and 7-day cards.")
 
     # two-column hero area: big hero + sparklines & stats
     col_hero, col_right = st.columns([1.4, 1])
@@ -463,7 +463,7 @@ if page == "Overview":
 # ---------------------------
 elif page == "Analytics":
     st.header("Analytics — Data, Diagnostics & Models")
-    st.markdown("Full-width interactive charts and organized model summaries.")
+    #st.markdown("Full-width interactive charts and organized model summaries.")
 
     tab_data, tab_diag, tab_models = st.tabs(["Data Preview", "Diagnostics", "Model Summaries"])
 
@@ -865,3 +865,4 @@ elif page == "Forecast & Downloads":
 st.markdown("---")
 st.markdown("<div style='color:#cfe9ff; font-weight:700'>Data sample</div>", unsafe_allow_html=True)
 st.dataframe(df.head(50))
+
