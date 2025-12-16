@@ -2,6 +2,10 @@ streamlit
 pandas
 numpy
 plotly
-statsmodels
 matplotlib
+statsmodels
+scipy
+scikit-learn
+arch
+joblib
 pillow
