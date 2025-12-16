@@ -26,7 +26,8 @@ import streamlit as st
 import base64
 from pathlib import Path
 
-st.set_page_config(layout="wide")
+
+st.set_page_config(page_title="Temperature Forecast Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 def set_background(image_file):
     img_bytes = Path(image_file).read_bytes()
@@ -72,7 +73,7 @@ set_background("background.jpg")
 # ---------------------------
 # Page config
 # ---------------------------
-st.set_page_config(page_title="Temperature Forecast Dashboard", layout="wide", initial_sidebar_state="expanded")
+
 
 # ---------------------------
 # CSS & Theme (Hybrid: subtle glow + clean)
@@ -87,7 +88,11 @@ CSS = """
   --card-border: rgba(255,255,255,0.05);
   --muted: #bcdcf8;
 }
-html, body, .stApp { font-family: 'Poppins', sans-serif; background: linear-gradient(180deg,#071225 0%, #03111a 100%); color: #eaf6ff; }
+html, body, .stApp {
+  font-family: 'Poppins', sans-serif;
+  color: #eaf6ff;
+}
+
 .header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:14px; padding:14px; border:1px solid var(--card-border); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
 .hero { display:flex; gap:18px; align-items:center; }
@@ -109,6 +114,8 @@ html, body, .stApp { font-family: 'Poppins', sans-serif; background: linear-grad
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
+set_background("background.jpg")
+
 
 # ---------------------------
 # Load data
@@ -912,6 +919,7 @@ elif page == "Forecast & Downloads":
 st.markdown("---")
 st.markdown("<div style='color:#cfe9ff; font-weight:700'>Data sample</div>", unsafe_allow_html=True)
 st.dataframe(df.head(50))
+
 
 
 
