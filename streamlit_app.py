@@ -94,7 +94,7 @@ def set_background(image_file):
         /* TRANSPARENT LAYER FOR GLASS EFFECT */
         .block-container {{
             background-color: rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(1px);
             border-radius: 18px;
         }}
 
@@ -915,6 +915,7 @@ elif page == "Forecast & Downloads":
 st.markdown("---")
 st.markdown("<div style='color:#cfe9ff; font-weight:700'>Data sample</div>", unsafe_allow_html=True)
 st.dataframe(df.head(50))
+
 
 
 
