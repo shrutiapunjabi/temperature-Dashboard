@@ -6,7 +6,10 @@ import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+try:
+    import seaborn as sns
+except ImportError:
+    sns = None
 
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tools import add_constant
