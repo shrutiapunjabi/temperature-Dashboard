@@ -680,96 +680,96 @@ if __name__ == "__main__":
 # print("\nValidated user input:")
 # print(new_data)
 
-pred = tp.predict_from_dict(new_data)
+    pred = tp.predict_from_dict(new_data)
 
-print("\n" + "="*70)
-print(" PREDICTION RESULTS ")
-print("="*70)
-print(f"MAX TEMP → {_fmt(pred['maxtp']['Hybrid'])}")
-print(f"MIN TEMP → {_fmt(pred['mintp']['Hybrid'])}")
-print("="*70)
+    print("\n" + "="*70)
+    print(" PREDICTION RESULTS ")
+    print("="*70)
+    print(f"MAX TEMP → {_fmt(pred['maxtp']['Hybrid'])}")
+    print(f"MIN TEMP → {_fmt(pred['mintp']['Hybrid'])}")
+    print("="*70)
 
 # %%
 # 1. Data Summary
-generate_data_summary(tp)
+    generate_data_summary(tp)
 
 # %%
 # 2. Monthly trends
-print("\n[1/12] Generating monthly temperature trends...")
-plot_monthly_temperature_trends(tp)
+    print("\n[1/12] Generating monthly temperature trends...")
+    plot_monthly_temperature_trends(tp)
 
 # %%
 # 3. Smoothed temperature trend (NEW)
-print("[2/12] Generating smoothed temperature trend...")
-plot_smoothed_temperature_trend(tp)
+    print("[2/12] Generating smoothed temperature trend...")
+    plot_smoothed_temperature_trend(tp)
 
 # %%
 # 4. Correlation heatmap
-print("[3/12] Generating correlation heatmap...")
-plot_correlation_heatmap(tp)
+    print("[3/12] Generating correlation heatmap...")
+    plot_correlation_heatmap(tp)
 
 # %%
 # 5. OLS summaries
-print("[4/12] Displaying OLS summary for MAXTP...")
-display_ols_summary(tp, 'maxtp')
+    print("[4/12] Displaying OLS summary for MAXTP...")
+    display_ols_summary(tp, 'maxtp')
 
 # %%
-print("[5/12] Displaying OLS summary for MINTP...")
-display_ols_summary(tp, 'mintp')
+    print("[5/12] Displaying OLS summary for MINTP...")
+    display_ols_summary(tp, 'mintp')
 
 # %%
 # 6. ARIMA summaries
-print("[6/12] Displaying ARIMA summary for MAXTP...")
-display_arima_summary(tp, 'maxtp')
+    print("[6/12] Displaying ARIMA summary for MAXTP...")
+    display_arima_summary(tp, 'maxtp')
 
 # %%
-print("[7/12] Displaying ARIMA summary for MINTP...")
-display_arima_summary(tp, 'mintp')
+    print("[7/12] Displaying ARIMA summary for MINTP...")
+    display_arima_summary(tp, 'mintp')
 
 # %%
 # 7. GARCH summaries (NEW)
-print("[8/12] Displaying GARCH summary for MAXTP...")
-display_garch_summary(tp, 'maxtp')
+    print("[8/12] Displaying GARCH summary for MAXTP...")
+    display_garch_summary(tp, 'maxtp')
 
 # %%
-print("[9/12] Displaying GARCH summary for MINTP...")
-display_garch_summary(tp, 'mintp')
+    print("[9/12] Displaying GARCH summary for MINTP...")
+    display_garch_summary(tp, 'mintp')
 
 # %%
 # 8b. GARCH Smoothed Volatility Plot
-print("Plotting smoothed GARCH volatility...")
-plot_garch_smoothed_volatility(tp)
+    print("Plotting smoothed GARCH volatility...")
+    plot_garch_smoothed_volatility(tp)
 
 # %%
 # 8. Actual vs Predicted
-print("[10/12] Plotting actual vs predicted for MAXTP...")
-plot_actual_vs_predicted(tp, 'maxtp')
+    print("[10/12] Plotting actual vs predicted for MAXTP...")
+    plot_actual_vs_predicted(tp, 'maxtp')
 
 # %%
-print("[10/12] Plotting actual vs predicted for MINTP...")
-plot_actual_vs_predicted(tp, 'mintp')
+    print("[10/12] Plotting actual vs predicted for MINTP...")
+    plot_actual_vs_predicted(tp, 'mintp')
 
 # %%
 # 9. Model metrics
-print("[11/12] Calculating model performance metrics...")
-calculate_model_metrics(tp)
+    print("[11/12] Calculating model performance metrics...")
+    calculate_model_metrics(tp)
 
 # %%
 # 10. Residual analysis
-print("[11/12] Generating residual analysis for MAXTP...")
-plot_residual_analysis(tp, 'maxtp')
+    print("[11/12] Generating residual analysis for MAXTP...")
+    plot_residual_analysis(tp, 'maxtp')
 
 # %%
-print("[11/12] Generating residual analysis for MINTP...")
-plot_residual_analysis(tp, 'mintp')
+    print("[11/12] Generating residual analysis for MINTP...")
+    plot_residual_analysis(tp, 'mintp')
 
 # %%
 # 11. Feature importance
-print("[12/12] Plotting feature importance for MAXTP...")
-plot_feature_importance(tp, 'maxtp')
+    print("[12/12] Plotting feature importance for MAXTP...")
+    plot_feature_importance(tp, 'maxtp')
 
 # %%
-print("[12/12] Plotting feature importance for MINTP...")
-plot_feature_importance(tp, 'mintp')
+    print("[12/12] Plotting feature importance for MINTP...")
+    plot_feature_importance(tp, 'mintp')
 
 
