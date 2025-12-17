@@ -220,8 +220,8 @@ class TemperaturePredictor:
         print("=== Model Ready ===")
 
         # ==========================
-    # Streamlit compatibility helpers
-    # ==========================
+        # Streamlit compatibility helpers
+        # ==========================
 
     def run_pipeline(self):
         """Alias for Streamlit compatibility"""
