@@ -161,13 +161,20 @@ if dt_col:
 # ---------------------------
 # Optional: load TemperaturePredictor
 # ---------------------------
+# ---------------------------
+# Optional: load TemperaturePredictor
+# ---------------------------
 HAS_TP = False
 tp = None
+
 try:
-    from temp_predictor import TemperaturePredictor  # type: ignore
+    from temp_predictor import TemperaturePredictor
     HAS_TP = True
-except Exception:
+except Exception as e:
     HAS_TP = False
+    st.sidebar.error("temp_predictor import failed")
+    st.sidebar.exception(e)
+
 
 PICKLE = "models.pkl"
 def load_cached_models(path=PICKLE):
@@ -915,6 +922,7 @@ elif page == "Forecast & Downloads":
 st.markdown("---")
 st.markdown("<div style='color:#cfe9ff; font-weight:700'>Data sample</div>", unsafe_allow_html=True)
 st.dataframe(df.head(50))
+
 
 
 
