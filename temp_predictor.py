@@ -23,7 +23,7 @@ from typing import Dict, Any, Optional
 class TemperaturePredictor:
     REQUIRED_COLS = ['date', 'sun', 'soil', 'rain', 'gmin', 'wdsp', 'maxtp', 'mintp']
 
-    def __init__(self, file_path: str = "data.csv"):
+    def __init__(self, file_path: str = "Data.csv"):
         self.file_path = file_path
         self.df = None
         self.train = None
@@ -639,7 +639,7 @@ if __name__ == "__main__":
     sns.set_style("whitegrid")
     plt.rcParams['figure.figsize'] = (12, 6)
 
-    tp = TemperaturePredictor("data.csv")
+    tp = TemperaturePredictor("Data.csv")
     tp.run()    
 #     # Generate complete report for college submission
 # print("\n" + "="*70)
