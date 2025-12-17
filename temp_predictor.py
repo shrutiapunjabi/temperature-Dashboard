@@ -669,13 +669,8 @@ def get_date(prompt):
         except ValueError:
             print("Invalid date format. Please use YYYY-MM-DD.")
 
-# %%
-# ----------------------------------------------------------
-# MAIN PROGRAM WITH REPORTING
-# ----------------------------------------------------------
-# ==========================
 
-    return pd.DataFrame(rows)
+
 
 
 
