@@ -17,8 +17,7 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from typing import Dict, Any, Optional
 
 # Set style for better-looking plots
-sns.set_style("whitegrid")
-plt.rcParams['figure.figsize'] = (12, 6)
+
 
 # %%
 class TemperaturePredictor:
@@ -274,7 +273,7 @@ def plot_monthly_temperature_trends(predictor: TemperaturePredictor):
     
     plt.tight_layout()
     plt.savefig('monthly_temperature_trends.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    #plt.show()()
     
     print("\n✔ Saved: monthly_temperature_trends.png")
     return monthly_avg
@@ -307,7 +306,7 @@ def plot_smoothed_temperature_trend(predictor: TemperaturePredictor):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig('smoothed_temperature_trend.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    #plt.show()()
     
     print("\n✔ Saved: smoothed_temperature_trend.png")
     return data_month
@@ -325,7 +324,7 @@ def plot_correlation_heatmap(predictor: TemperaturePredictor):
     
     plt.tight_layout()
     plt.savefig('correlation_heatmap.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    #plt.show()()
     
     print("\n✔ Saved: correlation_heatmap.png")
     return corr
@@ -437,7 +436,7 @@ def plot_actual_vs_predicted(predictor: TemperaturePredictor, target: str):
     
     plt.tight_layout()
     plt.savefig(f'actual_vs_predicted_{target}.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    #plt.show()()
     
     print(f"\n✔ Saved: actual_vs_predicted_{target}.png")
 
@@ -515,7 +514,7 @@ def plot_residual_analysis(predictor: TemperaturePredictor, target: str):
     fig.suptitle(f'Residual Analysis - {target.upper()}', fontsize=14, fontweight='bold', y=1.00)
     plt.tight_layout()
     plt.savefig(f'residual_analysis_{target}.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    #plt.show()()
     
     print(f"\n✔ Saved: residual_analysis_{target}.png")
 
@@ -548,7 +547,7 @@ def plot_feature_importance(predictor: TemperaturePredictor, target: str):
     
     plt.tight_layout()
     plt.savefig(f'feature_importance_{target}.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    #plt.show()()
     
     print(f"\n✔ Saved: feature_importance_{target}.png")
     
@@ -587,7 +586,7 @@ def plot_garch_smoothed_volatility(predictor: TemperaturePredictor):
 
     plt.tight_layout()
     plt.savefig("garch_smoothed_volatility.png", dpi=300)
-    plt.show()
+    #plt.show()()
 
     print("\n✔ Saved: garch_smoothed_volatility.png")
 
@@ -637,6 +636,9 @@ def get_date(prompt):
 # Initialize and train model
 if __name__ == "__main__":
 
+    sns.set_style("whitegrid")
+    plt.rcParams['figure.figsize'] = (12, 6)
+
     tp = TemperaturePredictor("data.csv")
     tp.run()    
 #     # Generate complete report for college submission
@@ -660,7 +662,7 @@ if __name__ == "__main__":
         "wdsp": 9.5,#float(input("Yesterday wdsp: ")),
         "maxtp_yesterday": 11,#float(input("Yesterday MAX temp: ")),
         "mintp_yesterday": 4.8,#float(input("Yesterday MIN temp: ")),
-        "forecast_date": 2025-10-30#input("Forecast date (YYYY-MM-DD): ")
+        "forecast_date": pd.Timestamp("2025-10-30")#input("Forecast date (YYYY-MM-DD): ")
 }
 # # ================================
 # # VALIDATED USER INPUT SECTION
