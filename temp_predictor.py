@@ -219,6 +219,48 @@ class TemperaturePredictor:
             self.train_garch(t)
         print("=== Model Ready ===")
 
+        # ==========================
+    # Streamlit compatibility helpers
+    # ==========================
+
+    def run_pipeline(self):
+        """Alias for Streamlit compatibility"""
+        return self.run()
+
+    def get_garch_volatility(self, target: str):
+        model = self.garch_models.get(target)
+        if model is None:
+            return None
+        try:
+            return pd.Series(
+                model.conditional_volatility,
+                index=self.train.index
+            )
+        except Exception:
+            return None
+
+    def rolling_forecast_errors(self, target: str, window: int = 30):
+        if target not in self.predictions:
+            return None
+        actual = self.predictions[target]["actual"]
+        pred = self.predictions[target]["predicted"]
+        err = actual - pred
+        return np.sqrt((err ** 2).rolling(window=window, min_periods=1).mean())
+
+    def get_metrics_df(self):
+        rows = []
+        for target in ["maxtp", "mintp"]:
+            if target not in self.predictions:
+                continue
+            actual = self.predictions[target]["actual"]
+            pred = self.predictions[target]["predicted"]
+            rows.append({
+                "target": target,
+                "R2": r2_score(actual, pred),
+                "MAE": mean_absolute_error(actual, pred),
+                "RMSE": np.sqrt(mean_squared_error(actual, pred))
+            })
+        return pd.DataFrame(rows)
 
 # %%
 # ==============================================================================
@@ -632,46 +674,7 @@ def get_date(prompt):
 # MAIN PROGRAM WITH REPORTING
 # ----------------------------------------------------------
 # ==========================
-# Streamlit compatibility helpers
-# ==========================
 
-def run_pipeline(self):
-    """Alias for Streamlit compatibility"""
-    return self.run()
-
-def get_garch_volatility(self, target: str):
-    model = self.garch_models.get(target)
-    if model is None:
-        return None
-    try:
-        return pd.Series(
-            model.conditional_volatility,
-            index=self.train.index
-        )
-    except Exception:
-        return None
-
-def rolling_forecast_errors(self, target: str, window: int = 30):
-    if target not in self.predictions:
-        return None
-    actual = self.predictions[target]["actual"]
-    pred = self.predictions[target]["predicted"]
-    err = actual - pred
-    return np.sqrt((err ** 2).rolling(window=window, min_periods=1).mean())
-
-def get_metrics_df(self):
-    rows = []
-    for target in ["maxtp", "mintp"]:
-        if target not in self.predictions:
-            continue
-        actual = self.predictions[target]["actual"]
-        pred = self.predictions[target]["predicted"]
-        rows.append({
-            "target": target,
-            "R2": r2_score(actual, pred),
-            "MAE": mean_absolute_error(actual, pred),
-            "RMSE": np.sqrt(mean_squared_error(actual, pred))
-        })
     return pd.DataFrame(rows)
 
 
