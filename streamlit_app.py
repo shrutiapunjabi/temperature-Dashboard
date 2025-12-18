@@ -1,8 +1,3 @@
-"""
-Enhanced Temperature Forecast Dashboard
-Improved visualization, organization, and professional styling for academic submission
-"""
-
 import os
 import pickle
 import traceback
@@ -1227,3 +1222,4 @@ st.markdown("""
     <p style='margin: 0.5rem 0 0 0; font-size: 0.85rem;'>Built with Streamlit & Python</p>
 </div>
 """, unsafe_allow_html=True)
+
