@@ -1,8 +1,6 @@
-# streamlit_app_final_sidebar.py
 """
-Final dashboard with redesigned Overview (Hybrid style), Analytics and Forecast pages.
-- Place Data.csv and optionally temp_predictor.py next to this file.
-- Run: streamlit run streamlit_app_final_sidebar.py
+Enhanced Temperature Forecast Dashboard
+Improved visualization, organization, and professional styling for academic submission
 """
 
 import os
@@ -15,110 +13,305 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-from statsmodels.tsa.seasonal import seasonal_decompose
 import matplotlib.pyplot as plt
 import io
-from PIL import Image
-
-import streamlit as st
-import base64
 from pathlib import Path
+import base64
 
-
-st.set_page_config(page_title="Temperature Forecast Dashboard", layout="wide", initial_sidebar_state="expanded")
-
-
-
-# ---------------------------
 # Page config
-# ---------------------------
+st.set_page_config(
+    page_title="Temperature Forecast Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    page_icon="🌡️"
+)
 
-
-# ---------------------------
-# CSS & Theme (Hybrid: subtle glow + clean)
-# ---------------------------
+# Enhanced CSS with professional styling
 CSS = """
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --accent: #4fb3ff;
-  --accent-2: #7bd1ff;
-  --glass: rgba(255,255,255,0.03);
-  --card-border: rgba(255,255,255,0.05);
-  --muted: #bcdcf8;
-}
-html, body, .stApp {
-  font-family: 'Poppins', sans-serif;
-  color: #eaf6ff;
+:root {
+  --primary: #2E86DE;
+  --secondary: #5F27CD;
+  --success: #00D2D3;
+  --warning: #FFA801;
+  --danger: #EE5A6F;
+  --text-light: #E8F4F8;
+  --card-bg: rgba(255,255,255,0.03);
+  --border: rgba(255,255,255,0.08);
 }
 
-.header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-.card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:14px; padding:14px; border:1px solid var(--card-border); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
-.hero { display:flex; gap:18px; align-items:center; }
-.hero-icon { width:110px; height:110px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:44px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border:1px solid var(--card-border); }
-.metric { color: var(--accent); font-weight:800; font-size:40px; }
-.small { color: var(--muted); font-size:13px; }
-.spark { height:72px; }
-.hourly-carousel { display:flex; gap:10px; overflow-x:auto; padding:8px 2px; }
-.hour-tile { min-width:96px; background: rgba(255,255,255,0.02); border-radius:10px; padding:8px; text-align:center; border:1px solid rgba(255,255,255,0.03); flex:0 0 auto; }
-.day-row { display:flex; gap:10px; margin-top:10px; }
-.day-card { flex:1; padding:12px; border-radius:10px; background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.03); text-align:center; }
-.stats-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; margin-top:10px; }
-.stButton>button, .stDownloadButton>button { background: var(--accent) !important; color:#042433 !important; border-radius:8px !important; padding:8px 12px !important; font-weight:700 !important; }
-@media (max-width:900px) {
-  .hero { flex-direction:column; align-items:flex-start; gap:8px; }
-  .hour-tile { min-width:84px; }
+html, body, .stApp {
+  font-family: 'Inter', sans-serif;
+  color: var(--text-light);
+}
+
+/* Header styling */
+.main-header {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  padding: 2rem;
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.main-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: white;
+}
+
+.main-header p {
+  margin: 0.5rem 0 0 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+  color: white;
+}
+
+/* Card styling */
+.metric-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+}
+
+.metric-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0.5rem 0;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.metric-delta {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.delta-positive {
+  background: rgba(0,210,211,0.15);
+  color: var(--success);
+}
+
+.delta-negative {
+  background: rgba(238,90,111,0.15);
+  color: var(--danger);
+}
+
+/* Info cards */
+.info-card {
+  background: linear-gradient(135deg, rgba(46,134,222,0.1), rgba(95,39,205,0.1));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.info-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.stat-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+/* Section headers */
+.section-header {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--primary);
+}
+
+/* Model summary cards */
+.model-summary {
+  background: linear-gradient(135deg, rgba(46,134,222,0.05), rgba(95,39,205,0.05));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.model-summary h4 {
+  margin: 0 0 1rem 0;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Buttons */
+.stButton>button {
+  background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 0.75rem 2rem !important;
+  font-weight: 600 !important;
+  transition: transform 0.2s !important;
+}
+
+.stButton>button:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 8px 24px rgba(46,134,222,0.4) !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+  gap: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+  background: var(--card-bg);
+  border-radius: 8px 8px 0 0;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+}
+
+.stTabs [aria-selected="true"] {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+}
+
+/* Forecast cards */
+.forecast-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  min-width: 120px;
+}
+
+.forecast-icon {
+  font-size: 2.5rem;
+  margin: 0.5rem 0;
+}
+
+.forecast-temp {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.forecast-date {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+/* Sidebar styling */
+section[data-testid="stSidebar"] {
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(20px);
+}
+
+section[data-testid="stSidebar"] .stRadio > label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Data table styling */
+.dataframe {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .main-header h1 { font-size: 1.8rem; }
   .stats-grid { grid-template-columns: 1fr; }
 }
 </style>
 """
+
 st.markdown(CSS, unsafe_allow_html=True)
 
 def set_background(image_file):
-    img_bytes = Path(image_file).read_bytes()
-    encoded = base64.b64encode(img_bytes).decode()
+    """Set background image if available"""
+    if not os.path.exists(image_file):
+        return
+    try:
+        img_bytes = Path(image_file).read_bytes()
+        encoded = base64.b64encode(img_bytes).decode()
+        st.markdown(
+            f"""
+            <style>
+            [data-testid="stAppViewContainer"] {{
+                background-image: url("data:image/jpg;base64,{encoded}");
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }}
+            .block-container {{
+                background-color: rgba(0, 0, 0, 0.55);
+                backdrop-filter: blur(2px);
+                border-radius: 18px;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+    except Exception:
+        pass
 
-    st.markdown(
-        f"""
-        <style>
-        /* ACTUAL STREAMLIT APP BACKGROUND */
-        [data-testid="stAppViewContainer"] {{
-            background-image: url("data:image/jpg;base64,{encoded}");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }}
-
-        /* TRANSPARENT LAYER FOR GLASS EFFECT */
-        .block-container {{
-            background-color: rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(2px);
-            border-radius: 18px;
-        }}
-
-        /* SIDEBAR */
-        section[data-testid="stSidebar"] {{
-            background-color: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(18px);
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-st.markdown(CSS, unsafe_allow_html=True)
+# Try to set background
 set_background("background.jpg")
 
-
-
-# ---------------------------
 # Load data
-# ---------------------------
 DATA_FILE = "Data.csv"
 if not os.path.exists(DATA_FILE):
-    st.error("Data.csv not found. Place Data.csv next to this script and reload.")
+    st.error("⚠️ Data.csv not found. Please place Data.csv in the same directory.")
     st.stop()
 
 @st.cache_data
@@ -127,808 +320,910 @@ def load_data(path: str) -> pd.DataFrame:
 
 try:
     df = load_data(DATA_FILE)
-except Exception:
+except Exception as e:
     st.error("Failed to load Data.csv.")
-    st.exception(traceback.format_exc())
+    st.exception(e)
     st.stop()
 
 # Validate required columns
-if "maxtp" not in df.columns or "mintp" not in df.columns:
+required_cols = ["maxtp", "mintp"]
+if not all(col in df.columns for col in required_cols):
     st.error("Data.csv must contain 'maxtp' and 'mintp' columns.")
     st.stop()
 
-# detect datetime column if present
+# Detect datetime column
 def detect_datetime_col(data: pd.DataFrame) -> Optional[str]:
     candidates = ["date", "datetime", "time", "timestamp"]
     for c in data.columns:
         if c.lower() in candidates:
             return c
-    for c in data.columns:
-        try:
-            pd.to_datetime(data[c].dropna().iloc[:10])
-            return c
-        except Exception:
-            continue
     return None
 
 dt_col = detect_datetime_col(df)
 if dt_col:
     try:
         df[dt_col] = pd.to_datetime(df[dt_col], errors="coerce")
+        df = df.sort_values(by=dt_col).reset_index(drop=True)
     except Exception:
         pass
 
-# ---------------------------
-# Optional: load TemperaturePredictor
-# ---------------------------
-# ---------------------------
-# Optional: load TemperaturePredictor
-# ---------------------------
+# Load temperature predictor if available
 HAS_TP = False
 tp = None
 
 try:
     from temp_predictor import TemperaturePredictor
     HAS_TP = True
-except Exception as e:
-    HAS_TP = False
-    st.sidebar.error("temp_predictor import failed")
-    st.sidebar.exception(e)
-
-
-PICKLE = "models.pkl"
-def load_cached_models(path=PICKLE):
-    if os.path.exists(path):
+    
+    PICKLE = "models.pkl"
+    if os.path.exists(PICKLE):
         try:
-            with open(path, "rb") as f:
-                return pickle.load(f)
+            with open(PICKLE, "rb") as f:
+                tp = pickle.load(f)
         except Exception:
-            return None
-    return None
+            pass
+except Exception:
+    pass
 
-if HAS_TP:
-    cached = load_cached_models()
-    if cached is not None:
-        tp = cached
+# Helper functions
+def weather_icon_for_temp(temp, rain=0):
+    """Get weather icon based on temperature and rain"""
+    if rain > 5: return "⛈️"
+    if rain > 0.5: return "🌧️"
+    if temp <= 0: return "❄️"
+    if temp >= 25: return "☀️"
+    if temp >= 18: return "🌤️"
+    return "🌥️"
 
-# ---------------------------
-# Helpers
-# ---------------------------
-def weather_icon_for_row(row: pd.Series) -> str:
-    try:
-        rain = float(row.get("rain", 0) or 0)
-        sun = float(row.get("sun", 0) or 0)
-        wdsp = float(row.get("wdsp", 0) or 0)
-        maxt = float(row.get("maxtp", 0) or 0)
-    except Exception:
-        rain = sun = wdsp = maxt = 0
-    if rain > 5: return "⛈"
-    if rain > 0.5: return "🌧"
-    if maxt <= 0: return "❄️"
-    if sun >= 6 and maxt >= 18: return "☀️"
-    if sun >= 3: return "🌤"
-    if wdsp > 12: return "🌫"
-    return "🌥"
+def calculate_statistics(series):
+    """Calculate comprehensive statistics"""
+    return {
+        "mean": series.mean(),
+        "std": series.std(),
+        "min": series.min(),
+        "max": series.max(),
+        "median": series.median(),
+        "q25": series.quantile(0.25),
+        "q75": series.quantile(0.75)
+    }
 
-def safe_predict(tp_obj, params: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        return tp_obj.predict_from_dict(params)
-    except Exception:
-        return {}
+# Sidebar
+st.sidebar.markdown("### 🌡️ Temperature Forecast")
+st.sidebar.markdown("---")
 
-def ensure_predictions_local(tp_obj, target: str) -> bool:
-    if tp_obj is None:
-        return False
-    if getattr(tp_obj, "predictions", None) and target in tp_obj.predictions:
-        return True
-    try:
-        if hasattr(tp_obj, "train_ols"):
-            tp_obj.train_ols(target)
-            return (target in getattr(tp_obj, "predictions", {}))
-    except Exception:
-        return False
-
-def generate_24h(tp_obj, base_row: pd.Series):
-    results = []
-    last_maxt = base_row.get("maxtp", None)
-    last_mint = base_row.get("mintp", None)
-    base_dt = pd.to_datetime(base_row[dt_col]) if (dt_col in base_row and not pd.isna(base_row[dt_col])) else pd.Timestamp.now()
-    for h in range(1,25):
-        fdate = base_dt + pd.Timedelta(hours=h)
-        params = {
-            "sun": float(base_row.get("sun", 0) or 0),
-            "soil": float(base_row.get("soil", 0) or 0),
-            "rain": float(base_row.get("rain", 0) or 0),
-            "gmin": float(base_row.get("gmin", 0) or 0),
-            "wdsp": float(base_row.get("wdsp", 0) or 0),
-            "maxtp_yesterday": last_maxt,
-            "mintp_yesterday": last_mint,
-            "forecast_date": pd.to_datetime(fdate)
-        }
-        if tp_obj is not None:
-            out = safe_predict(tp_obj, params)
-            ma = out.get("maxtp", {})
-            mi = out.get("mintp", {})
-            if isinstance(ma, dict) and "Hybrid" in ma:
-                last_maxt = ma["Hybrid"]
-            if isinstance(mi, dict) and "Hybrid" in mi:
-                last_mint = mi["Hybrid"]
-            results.append({"forecast_date": params["forecast_date"], "maxtp": ma, "mintp": mi})
-        else:
-            results.append({"forecast_date": params["forecast_date"], "maxtp": last_maxt, "mintp": last_mint})
-    return results
-
-def generate_7day(tp_obj, base_row: pd.Series):
-    results = []
-    last_maxt = base_row.get("maxtp", None)
-    last_mint = base_row.get("mintp", None)
-    base_dt = pd.to_datetime(base_row[dt_col]) if (dt_col in base_row and not pd.isna(base_row[dt_col])) else pd.Timestamp.now()
-    for d in range(1,8):
-        fdate = base_dt + pd.Timedelta(days=d)
-        params = {
-            "sun": float(base_row.get("sun", 0) or 0),
-            "soil": float(base_row.get("soil", 0) or 0),
-            "rain": float(base_row.get("rain", 0) or 0),
-            "gmin": float(base_row.get("gmin", 0) or 0),
-            "wdsp": float(base_row.get("wdsp", 0) or 0),
-            "maxtp_yesterday": last_maxt,
-            "mintp_yesterday": last_mint,
-            "forecast_date": pd.to_datetime(fdate)
-        }
-        if tp_obj is not None:
-            out = safe_predict(tp_obj, params)
-            ma = out.get("maxtp", {})
-            mi = out.get("mintp", {})
-            if isinstance(ma, dict) and "Hybrid" in ma:
-                last_maxt = ma["Hybrid"]
-            if isinstance(mi, dict) and "Hybrid" in mi:
-                last_mint = mi["Hybrid"]
-            results.append({"forecast_date": params["forecast_date"], "maxtp": ma, "mintp": mi})
-        else:
-            results.append({"forecast_date": params["forecast_date"], "maxtp": last_maxt, "mintp": last_mint})
-    return results
-
-def safe_rolling_rmse_from_preds(actual: pd.Series, pred: pd.Series, window:int=30):
-    try:
-        comb = pd.concat([actual, pred], axis=1).dropna()
-        comb.columns = ["actual","pred"]
-        errs = comb["actual"] - comb["pred"]
-        return np.sqrt((errs**2).rolling(window=window, min_periods=1).mean())
-    except Exception:
-        return None
-
-# ---------------------------
-# Sidebar navigation & controls
-# ---------------------------
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Overview", "Analytics", "Forecast & Downloads"])
+page = st.sidebar.radio(
+    "Navigation",
+    ["📊 Executive Summary", "📈 Data Analysis", "🔬 Model Diagnostics", "🔮 Forecasting", "📥 Export & Reports"],
+    label_visibility="collapsed"
+)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("Model controls")
+
+# Model controls
 if HAS_TP:
-    if st.sidebar.button("Train / Retrain models"):
-        try:
-            with st.spinner("Training models..."):
-                tp = TemperaturePredictor(DATA_FILE)  # type: ignore
-                tp.run_pipeline()
-                try:
-                    with open(PICKLE, "wb") as f:
-                        pickle.dump(tp, f)
-                except Exception:
-                    pass
-                st.sidebar.success("Training finished.")
-        except Exception:
-            st.sidebar.error("Training failed.")
-            st.exception(traceback.format_exc())
-    st.sidebar.checkbox("Use cached models if available", value=True)
+    st.sidebar.markdown("### 🤖 Model Controls")
+    if st.sidebar.button("🔄 Train/Retrain Models"):
+        with st.spinner("Training models... This may take a minute."):
+            try:
+                tp = TemperaturePredictor(DATA_FILE)
+                tp.run()
+                with open("models.pkl", "wb") as f:
+                    pickle.dump(tp, f)
+                st.sidebar.success("✅ Models trained successfully!")
+                st.rerun()
+            except Exception as e:
+                st.sidebar.error("❌ Training failed")
+                st.sidebar.exception(e)
 else:
-    st.sidebar.info("No temp_predictor.py detected — using fallbacks.")
+    st.sidebar.info("💡 Place temp_predictor.py in the directory to enable model training")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("Theme")
-theme = st.sidebar.selectbox("Theme", ["Dark", "Light"], index=0)
-accent_choice = st.sidebar.selectbox("Accent", ["Blue","Purple","Orange","Green"], index=0)
-accent_map = {"Blue":"#4fb3ff","Purple":"#b06cff","Orange":"#ff8a50","Green":"#2ecc71"}
-accent_hex = accent_map.get(accent_choice, "#4fb3ff")
-PLOTLY_TEMPLATE = "plotly_dark" if theme == "Dark" else "plotly_white"
+st.sidebar.markdown("### ⚙️ Settings")
+theme = st.sidebar.selectbox("Chart Theme", ["plotly_dark", "plotly_white", "seaborn"], index=0)
 
-# ---------------------------
-# Page: Overview (enhanced)
-# ---------------------------
-if page == "Overview":
-    st.header("Overview — Today & Forecast glance")
-    #st.markdown("Beautiful summary, 14-day sparklines, hourly carousel and 7-day cards.")
-
-    # two-column hero area: big hero + sparklines & stats
-    col_hero, col_right = st.columns([1.4, 1])
-
-    # get latest row
-    try:
-        latest_row = df.sort_values(by=dt_col).iloc[-1] if dt_col in df.columns else df.iloc[-1]
-    except Exception:
-        latest_row = df.iloc[-1]
-
-    with col_hero:
-        st.markdown('<div class="card hero">', unsafe_allow_html=True)
-        # Hero: big icon + temps
-        icon = weather_icon_for_row(latest_row)
-        try:
-            ma = float(latest_row.get("maxtp")) if not pd.isna(latest_row.get("maxtp")) else None
-        except Exception:
-            ma = None
-        try:
-            mi = float(latest_row.get("mintp")) if not pd.isna(latest_row.get("mintp")) else None
-        except Exception:
-            mi = None
-
-        hero_html = f"""
-        <div style="display:flex; gap:18px; align-items:center;">
-          <div class="hero-icon" style="font-size:44px">{icon}</div>
-          <div>
-            <div style="font-size:14px; color:#bcdcf8">Today's Conditions</div>
-            <div style="display:flex; gap:12px; align-items:end;">
-              <div class="metric">{ma:.1f}°C</div>
-              <div style="min-width:110px;">
-                <div style="font-weight:700">{('Low: ' + (str(mi) + '°C')) if mi is not None else 'Low: n/a'}</div>
-                <div class="small">Last update: {pd.to_datetime(latest_row[dt_col]).strftime('%Y-%m-%d %H:%M') if dt_col in latest_row and not pd.isna(latest_row[dt_col]) else 'n/a'}</div>
-              </div>
+# Main content
+if page == "📊 Executive Summary":
+    # Header
+    st.markdown("""
+    <div class="main-header">
+        <h1>🌡️ Temperature Forecast Dashboard</h1>
+        <p>Advanced Time Series Analysis & Prediction System</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Key metrics row
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        latest_max = df["maxtp"].dropna().iloc[-1] if not df["maxtp"].dropna().empty else 0
+        prev_max = df["maxtp"].dropna().iloc[-2] if len(df["maxtp"].dropna()) > 1 else latest_max
+        delta_max = latest_max - prev_max
+        
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Current Max Temp</div>
+            <div class="metric-value">{latest_max:.1f}°C</div>
+            <div class="metric-delta {'delta-positive' if delta_max >= 0 else 'delta-negative'}">
+                {'↑' if delta_max >= 0 else '↓'} {abs(delta_max):.1f}°C
             </div>
-          </div>
         </div>
-        """
-        st.markdown(hero_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        latest_min = df["mintp"].dropna().iloc[-1] if not df["mintp"].dropna().empty else 0
+        prev_min = df["mintp"].dropna().iloc[-2] if len(df["mintp"].dropna()) > 1 else latest_min
+        delta_min = latest_min - prev_min
+        
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Current Min Temp</div>
+            <div class="metric-value">{latest_min:.1f}°C</div>
+            <div class="metric-delta {'delta-positive' if delta_min >= 0 else 'delta-negative'}">
+                {'↑' if delta_min >= 0 else '↓'} {abs(delta_min):.1f}°C
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        avg_temp = df["maxtp"].mean()
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Average Max Temp</div>
+            <div class="metric-value">{avg_temp:.1f}°C</div>
+            <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">Historical Mean</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        total_records = len(df)
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Total Records</div>
+            <div class="metric-value">{total_records:,}</div>
+            <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">Data Points</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Temperature trend visualization
+    st.markdown('<div class="section-header">📈 Temperature Trends</div>', unsafe_allow_html=True)
+    
+    if dt_col in df.columns:
+        # Create interactive plot with both max and min temps
+        fig = make_subplots(
+            rows=2, cols=1,
+            subplot_titles=("Maximum Temperature", "Minimum Temperature"),
+            vertical_spacing=0.12
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df[dt_col], y=df["maxtp"],
+                name="Max Temp",
+                line=dict(color="#2E86DE", width=2),
+                fill='tozeroy',
+                fillcolor='rgba(46, 134, 222, 0.1)'
+            ),
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df[dt_col], y=df["mintp"],
+                name="Min Temp",
+                line=dict(color="#5F27CD", width=2),
+                fill='tozeroy',
+                fillcolor='rgba(95, 39, 205, 0.1)'
+            ),
+            row=2, col=1
+        )
+        
+        fig.update_layout(
+            height=600,
+            template=theme,
+            showlegend=True,
+            hovermode='x unified'
+        )
+        
+        fig.update_xaxes(title_text="Date", row=2, col=1)
+        fig.update_yaxes(title_text="Temperature (°C)", row=1, col=1)
+        fig.update_yaxes(title_text="Temperature (°C)", row=2, col=1)
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Statistics grid
+    st.markdown('<div class="section-header">📊 Statistical Summary</div>', unsafe_allow_html=True)
+    
+    max_stats = calculate_statistics(df["maxtp"].dropna())
+    min_stats = calculate_statistics(df["mintp"].dropna())
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        <div class="info-card">
+            <h3>Maximum Temperature Statistics</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        stats_html = '<div class="stats-grid">'
+        for label, value in [
+            ("Mean", max_stats["mean"]),
+            ("Std Dev", max_stats["std"]),
+            ("Minimum", max_stats["min"]),
+            ("Maximum", max_stats["max"]),
+            ("Median", max_stats["median"]),
+            ("IQR", max_stats["q75"] - max_stats["q25"])
+        ]:
+            stats_html += f"""
+            <div class="stat-item">
+                <div class="stat-value">{value:.2f}</div>
+                <div class="stat-label">{label}</div>
+            </div>
+            """
+        stats_html += '</div>'
+        st.markdown(stats_html, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="info-card">
+            <h3>Minimum Temperature Statistics</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        stats_html = '<div class="stats-grid">'
+        for label, value in [
+            ("Mean", min_stats["mean"]),
+            ("Std Dev", min_stats["std"]),
+            ("Minimum", min_stats["min"]),
+            ("Maximum", min_stats["max"]),
+            ("Median", min_stats["median"]),
+            ("IQR", min_stats["q75"] - min_stats["q25"])
+        ]:
+            stats_html += f"""
+            <div class="stat-item">
+                <div class="stat-value">{value:.2f}</div>
+                <div class="stat-label">{label}</div>
+            </div>
+            """
+        stats_html += '</div>'
+        st.markdown(stats_html, unsafe_allow_html=True)
+    
+    # Model Performance Summary (if available)
+    if tp and hasattr(tp, "predictions"):
+        st.markdown('<div class="section-header">🎯 Model Performance</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown('<div class="model-summary">', unsafe_allow_html=True)
+            st.markdown("#### Maximum Temperature Model")
+            
+            if "maxtp" in tp.predictions:
+                from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+                
+                actual = tp.predictions["maxtp"]["actual"]
+                predicted = tp.predictions["maxtp"]["predicted"]
+                
+                r2 = r2_score(actual, predicted)
+                mae = mean_absolute_error(actual, predicted)
+                rmse = np.sqrt(mean_squared_error(actual, predicted))
+                
+                st.metric("R² Score", f"{r2:.4f}")
+                st.metric("MAE", f"{mae:.3f}°C")
+                st.metric("RMSE", f"{rmse:.3f}°C")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown('<div class="model-summary">', unsafe_allow_html=True)
+            st.markdown("#### Minimum Temperature Model")
+            
+            if "mintp" in tp.predictions:
+                actual = tp.predictions["mintp"]["actual"]
+                predicted = tp.predictions["mintp"]["predicted"]
+                
+                r2 = r2_score(actual, predicted)
+                mae = mean_absolute_error(actual, predicted)
+                rmse = np.sqrt(mean_squared_error(actual, predicted))
+                
+                st.metric("R² Score", f"{r2:.4f}")
+                st.metric("MAE", f"{mae:.3f}°C")
+                st.metric("RMSE", f"{rmse:.3f}°C")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+elif page == "📈 Data Analysis":
+    st.markdown("""
+    <div class="main-header">
+        <h1>📈 Data Analysis</h1>
+        <p>Exploratory Data Analysis & Visualizations</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Data overview
+    st.markdown('<div class="section-header">📋 Dataset Overview</div>', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Total Records", f"{len(df):,}")
+    with col2:
+        st.metric("Features", len(df.columns))
+    with col3:
+        missing_pct = (df.isnull().sum().sum() / (len(df) * len(df.columns)) * 100)
+        st.metric("Missing Data", f"{missing_pct:.2f}%")
+    
+    # Data preview
+    st.markdown("#### 📊 Data Preview")
+    st.dataframe(df.head(20), use_container_width=True)
+    
+    # Correlation analysis
+    st.markdown('<div class="section-header">🔗 Correlation Analysis</div>', unsafe_allow_html=True)
+    
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    if len(numeric_cols) > 1:
+        corr_matrix = df[numeric_cols].corr()
+        
+        fig = go.Figure(data=go.Heatmap(
+            z=corr_matrix.values,
+            x=corr_matrix.columns,
+            y=corr_matrix.columns,
+            colorscale='RdBu',
+            zmid=0,
+            text=corr_matrix.values,
+            texttemplate='%{text:.2f}',
+            textfont={"size": 10},
+            colorbar=dict(title="Correlation")
+        ))
+        
+        fig.update_layout(
+            title="Feature Correlation Matrix",
+            height=600,
+            template=theme
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Distribution analysis
+    st.markdown('<div class="section-header">📊 Temperature Distributions</div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(
+            x=df["maxtp"].dropna(),
+            name="Max Temp",
+            nbinsx=50,
+            marker_color='#2E86DE',
+            opacity=0.7
+        ))
+        fig.update_layout(
+            title="Maximum Temperature Distribution",
+            xaxis_title="Temperature (°C)",
+            yaxis_title="Frequency",
+            template=theme,
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(
+            x=df["mintp"].dropna(),
+            name="Min Temp",
+            nbinsx=50,
+            marker_color='#5F27CD',
+            opacity=0.7
+        ))
+        fig.update_layout(
+            title="Minimum Temperature Distribution",
+            xaxis_title="Temperature (°C)",
+            yaxis_title="Frequency",
+            template=theme,
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Box plots
+    st.markdown('<div class="section-header">📦 Temperature Ranges</div>', unsafe_allow_html=True)
+    
+    fig = go.Figure()
+    fig.add_trace(go.Box(y=df["maxtp"].dropna(), name="Max Temp", marker_color='#2E86DE'))
+    fig.add_trace(go.Box(y=df["mintp"].dropna(), name="Min Temp", marker_color='#5F27CD'))
+    
+    fig.update_layout(
+        title="Temperature Box Plots",
+        yaxis_title="Temperature (°C)",
+        template=theme,
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
 
-        # Hourly carousel (24 -> show horizontal scroll)
-        st.markdown("<div style='font-weight:700; margin-bottom:6px'>24-hour forecast (carousel)</div>", unsafe_allow_html=True)
-        hourly_html = '<div class="hourly-carousel">'
-        # generate using tp if available else fallback to last 24 values
-        hourly = []
-        if tp is not None:
-            try:
-                hourly = generate_24h(tp, latest_row)
-            except Exception:
-                hourly = []
-        if hourly:
-            for r in hourly:
-                fdt = pd.to_datetime(r["forecast_date"])
-                label = fdt.strftime("%a %I %p")
-                ma_val = None
-                if isinstance(r["maxtp"], dict) and "Hybrid" in r["maxtp"]:
-                    ma_val = r["maxtp"]["Hybrid"]
-                elif isinstance(r["maxtp"], (int, float)):
-                    ma_val = r["maxtp"]
-                icon2 = "🌤"
-                try:
-                    icon2 = "☀️" if ma_val is not None and float(ma_val) >= 18 else icon2
-                except Exception:
-                    pass
-                hourly_html += f'<div class="hour-tile"><div style="font-weight:700">{label}</div><div style="font-size:18px; margin-top:6px">{icon2}</div><div style="margin-top:6px">{("" if ma_val is None else f"{ma_val:.1f}°")}</div></div>'
+elif page == "🔬 Model Diagnostics":
+    st.markdown("""
+    <div class="main-header">
+        <h1>🔬 Model Diagnostics</h1>
+        <p>Model Performance Analysis & Validation</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not tp or not hasattr(tp, "predictions"):
+        st.warning("⚠️ No trained models available. Please train models first from the sidebar.")
+        st.stop()
+    
+    target = st.selectbox("Select Target Variable", ["maxtp", "mintp"])
+    
+    if target not in tp.predictions:
+        st.error(f"No predictions available for {target}")
+        st.stop()
+    
+    actual = tp.predictions[target]["actual"]
+    predicted = tp.predictions[target]["predicted"]
+    
+    # Performance metrics
+    st.markdown('<div class="section-header">🎯 Performance Metrics</div>', unsafe_allow_html=True)
+    
+    from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+    
+    r2 = r2_score(actual, predicted)
+    mae = mean_absolute_error(actual, predicted)
+    rmse = np.sqrt(mean_squared_error(actual, predicted))
+    mape = np.mean(np.abs((actual - predicted) / actual)) * 100
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">R² Score</div>
+            <div class="metric-value">{r2:.4f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">MAE</div>
+            <div class="metric-value">{mae:.3f}°C</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">RMSE</div>
+            <div class="metric-value">{rmse:.3f}°C</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">MAPE</div>
+            <div class="metric-value">{mape:.2f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Actual vs Predicted
+    st.markdown('<div class="section-header">📊 Actual vs Predicted</div>', unsafe_allow_html=True)
+    
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("Time Series Comparison", "Scatter Plot"),
+        specs=[[{"secondary_y": False}, {"secondary_y": False}]]
+    )
+    
+    # Time series
+    fig.add_trace(
+        go.Scatter(x=actual.index, y=actual.values, name="Actual", line=dict(color='#2E86DE', width=2)),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Scatter(x=predicted.index, y=predicted.values, name="Predicted", line=dict(color='#5F27CD', width=2, dash='dash')),
+        row=1, col=1
+    )
+    
+    # Scatter plot
+    min_val = min(actual.min(), predicted.min())
+    max_val = max(actual.max(), predicted.max())
+    
+    fig.add_trace(
+        go.Scatter(x=actual.values, y=predicted.values, mode='markers', 
+                   name="Predictions", marker=dict(color='#00D2D3', size=6, opacity=0.6)),
+        row=1, col=2
+    )
+    fig.add_trace(
+        go.Scatter(x=[min_val, max_val], y=[min_val, max_val], mode='lines',
+                   name="Perfect Fit", line=dict(color='#EE5A6F', width=2, dash='dash')),
+        row=1, col=2
+    )
+    
+    fig.update_xaxes(title_text="Date", row=1, col=1)
+    fig.update_yaxes(title_text="Temperature (°C)", row=1, col=1)
+    fig.update_xaxes(title_text="Actual (°C)", row=1, col=2)
+    fig.update_yaxes(title_text="Predicted (°C)", row=1, col=2)
+    
+    fig.update_layout(height=500, template=theme, showlegend=True)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Residual analysis
+    st.markdown('<div class="section-header">📉 Residual Analysis</div>', unsafe_allow_html=True)
+    
+    residuals = actual - predicted
+    
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=("Residuals Over Time", "Residual Distribution", 
+                        "Residuals vs Predicted", "Q-Q Plot")
+    )
+    
+    # Residuals over time
+    fig.add_trace(
+        go.Scatter(x=residuals.index, y=residuals.values, mode='lines',
+                   line=dict(color='#2E86DE', width=1)),
+        row=1, col=1
+    )
+    fig.add_hline(y=0, line_dash="dash", line_color="red", row=1, col=1)
+    
+    # Histogram
+    fig.add_trace(
+        go.Histogram(x=residuals.values, nbinsx=40, marker_color='#5F27CD'),
+        row=1, col=2
+    )
+    
+    # Residuals vs predicted
+    fig.add_trace(
+        go.Scatter(x=predicted.values, y=residuals.values, mode='markers',
+                   marker=dict(color='#00D2D3', size=4, opacity=0.5)),
+        row=2, col=1
+    )
+    fig.add_hline(y=0, line_dash="dash", line_color="red", row=2, col=1)
+    
+    # Q-Q plot
+    from scipy import stats
+    (osm, osr), (slope, intercept, r) = stats.probplot(residuals, dist="norm")
+    fig.add_trace(
+        go.Scatter(x=osm, y=osr, mode='markers',
+                   marker=dict(color='#FFA801', size=4)),
+        row=2, col=2
+    )
+    fig.add_trace(
+        go.Scatter(x=osm, y=slope*osm + intercept, mode='lines',
+                   line=dict(color='red', dash='dash')),
+        row=2, col=2
+    )
+    
+    fig.update_xaxes(title_text="Date", row=1, col=1)
+    fig.update_xaxes(title_text="Residual", row=1, col=2)
+    fig.update_xaxes(title_text="Predicted", row=2, col=1)
+    fig.update_xaxes(title_text="Theoretical Quantiles", row=2, col=2)
+    
+    fig.update_yaxes(title_text="Residual", row=1, col=1)
+    fig.update_yaxes(title_text="Frequency", row=1, col=2)
+    fig.update_yaxes(title_text="Residual", row=2, col=1)
+    fig.update_yaxes(title_text="Sample Quantiles", row=2, col=2)
+    
+    fig.update_layout(height=800, template=theme, showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Model summaries
+    st.markdown('<div class="section-header">📋 Model Summaries</div>', unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["OLS Model", "ARIMA Model", "GARCH Model"])
+    
+    with tab1:
+        if hasattr(tp, "ols_models") and target in tp.ols_models:
+            st.markdown(f"### OLS Regression Summary - {target.upper()}")
+            summary_text = tp.ols_models[target].summary().as_text()
+            st.text(summary_text)
         else:
-            # fallback to last 24 observations (or fewer)
-            sample = df.sort_values(by=dt_col).tail(24) if dt_col in df.columns else df.tail(12)
-            for _, r in sample.iterrows():
-                label = ""
-                if dt_col in r and not pd.isna(r.get(dt_col, None)):
-                    try:
-                        label = pd.to_datetime(r[dt_col]).strftime("%a %I %p")
-                    except Exception:
-                        label = str(r[dt_col])
-                v = r.get("maxtp", "")
-                icon2 = weather_icon_for_row(r)
-                hourly_html += f'<div class="hour-tile"><div style="font-weight:700">{label}</div><div style="font-size:18px; margin-top:6px">{icon2}</div><div style="margin-top:6px">{v if pd.notna(v) else ""}</div></div>'
-        hourly_html += "</div>"
-        st.markdown(hourly_html, unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("<div style='display:flex; justify-content:space-between; align-items:center;'><div style='font-weight:700'>Trends & stats</div><div class='small'>Last 14 days</div></div>", unsafe_allow_html=True)
-
-        # small sparklines for maxtp and mintp
-        def sparkline(series, title):
-            fig = px.line(series, height=90, template=PLOTLY_TEMPLATE)
-            fig.update_traces(line=dict(color=accent_hex), showlegend=False)
-            fig.update_layout(margin=dict(l=0,r=0,t=10,b=10), xaxis=dict(visible=False), yaxis=dict(visible=False))
-            st.markdown(f"<div style='font-weight:700'>{title}</div>", unsafe_allow_html=True)
-            st.plotly_chart(fig, use_container_width=True)
-
-        last_n = 14
-        try:
-            if dt_col in df.columns:
-                smax = df.sort_values(by=dt_col).set_index(dt_col)["maxtp"].dropna().astype(float).tail(last_n)
-                smin = df.sort_values(by=dt_col).set_index(dt_col)["mintp"].dropna().astype(float).tail(last_n)
-            else:
-                smax = df["maxtp"].dropna().astype(float).tail(last_n)
-                smin = df["mintp"].dropna().astype(float).tail(last_n)
-        except Exception:
-            smax = df["maxtp"].dropna().astype(float).tail(last_n) if "maxtp" in df.columns else pd.Series([])
-            smin = df["mintp"].dropna().astype(float).tail(last_n) if "mintp" in df.columns else pd.Series([])
-
-        sparkline(smax, "Max temp (last 14 days)")
-        sparkline(smin, "Min temp (last 14 days)")
-
-        # Quick stats grid
-        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-        st.markdown("<div class='stats-grid'>", unsafe_allow_html=True)
-        # dataset size
-        try:
-            rows = df.shape[0]
-            missing = df.isnull().sum().sum()
-            temp_range = df["maxtp"].dropna().astype(float).max() - df["maxtp"].dropna().astype(float).min()
-        except Exception:
-            rows = df.shape[0]
-            missing = df.isnull().sum().sum()
-            temp_range = None
-
-        # --- fix: compute display string before formatting ---
-        temp_range_str = f"{temp_range:.1f}" if (temp_range is not None and not pd.isna(temp_range)) else "n/a"
-        last_date_str = pd.to_datetime(df[dt_col]).max().strftime('%Y-%m-%d') if dt_col in df.columns else "n/a"
-
-        st.markdown(f"<div style='padding:10px; border-radius:8px; background:rgba(255,255,255,0.01)'><div style='font-weight:700'>{rows}</div><div class='small'>Rows</div></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='padding:10px; border-radius:8px; background:rgba(255,255,255,0.01)'><div style='font-weight:700'>{missing}</div><div class='small'>Missing values</div></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='padding:10px; border-radius:8px; background:rgba(255,255,255,0.01)'><div style='font-weight:700'>{temp_range_str}</div><div class='small'>Max range (maxtp)</div></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='padding:10px; border-radius:8px; background:rgba(255,255,255,0.01)'><div style='font-weight:700'>{last_date_str}</div><div class='small'>Last date</div></div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # 7-day modern cards (full width)
-    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("<div style='font-weight:700'>7-day forecast</div>", unsafe_allow_html=True)
-    # generate using tp if possible else show last 7 days averages
-    seven_html = '<div class="day-row">'
-    try:
-        if tp is not None:
-            seven = generate_7day(tp, latest_row)
-            for d in seven:
-                fdt = pd.to_datetime(d["forecast_date"]).date()
-                ma_val = None
-                if isinstance(d["maxtp"], dict) and "Hybrid" in d["maxtp"]:
-                    ma_val = d["maxtp"]["Hybrid"]
-                elif isinstance(d["maxtp"], (int,float)):
-                    ma_val = d["maxtp"]
-                icon = "🌤"
-                if ma_val is not None and ma_val >= 18:
-                    icon = "☀️"
-                seven_html += f'<div class="day-card"><div style="font-weight:700">{fdt.strftime("%a %d")}</div><div style="font-size:20px; margin-top:6px">{icon}</div><div style="margin-top:8px; font-weight:700">{("" if ma_val is None else f"{ma_val:.1f}°")}</div></div>'
+            st.warning("OLS model summary not available")
+    
+    with tab2:
+        if hasattr(tp, "arima_models") and target in tp.arima_models:
+            st.markdown(f"### ARIMA Model Summary - {target.upper()}")
+            try:
+                summary_text = tp.arima_models[target].summary().as_text()
+                st.text(summary_text)
+            except:
+                st.info("ARIMA summary not available")
         else:
-            if dt_col in df.columns:
-                tmp = df.sort_values(by=dt_col).copy()
-                tmp["date_only"] = pd.to_datetime(tmp[dt_col]).dt.date
-                last_dates = sorted(tmp["date_only"].unique())[-7:]
-                for d in last_dates:
-                    sub = tmp[tmp["date_only"] == d]
-                    avg = sub["maxtp"].dropna().astype(float).mean() if "maxtp" in sub.columns else None
-                    avg_s = f"{avg:.1f}°" if avg is not None and not pd.isna(avg) else "n/a"
-                    seven_html += f'<div class="day-card"><div style="font-weight:700">{d.strftime("%a %d")}</div><div style="font-size:20px; margin-top:6px">🌤</div><div style="margin-top:8px; font-weight:700">{avg_s}</div></div>'
-            else:
-                sample = df.tail(7)
-                for _, r in sample.iterrows():
-                    v = r.get("maxtp","n/a")
-                    seven_html += f'<div class="day-card"><div style="font-weight:700">Day</div><div style="font-size:20px; margin-top:6px">🌤</div><div style="margin-top:8px; font-weight:700">{v}</div></div>'
-    except Exception:
-        seven_html += '<div style="color:#f99">7-day generation failed</div>'
-    seven_html += "</div>"
-    st.markdown(seven_html, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------------------------
-# Page: Analytics (full-width charts + model summaries)
-# ---------------------------
-elif page == "Analytics":
-    st.header("Analytics — Data, Diagnostics & Models")
-    #st.markdown("Full-width interactive charts and organized model summaries.")
-
-    tab_data, tab_diag, tab_models = st.tabs(["Data Preview", "Diagnostics", "Model Summaries"])
-
-    with tab_data:
-        st.subheader("Data preview")
-        st.dataframe(df.head(200))
-        info = pd.DataFrame({"dtype": df.dtypes.astype(str), "missing": df.isnull().sum()})
-        st.table(info)
-
-    with tab_diag:
-        st.subheader("Diagnostics (full-width)")
-        target = st.selectbox("Target", ["maxtp","mintp"], index=0)
-        # time series
-        if st.button("Show time series"):
+            st.warning("ARIMA model not available")
+    
+    with tab3:
+        if hasattr(tp, "garch_models") and target in tp.garch_models:
+            st.markdown(f"### GARCH Model Summary - {target.upper()}")
             try:
-                if dt_col in df.columns:
-                    s = df.sort_values(by=dt_col).set_index(dt_col)[target].dropna().astype(float)
-                    fig = px.line(s, title=f"{target} time series", template=PLOTLY_TEMPLATE)
-                    fig.update_traces(line=dict(color=accent_hex))
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.warning("Datetime column required.")
-            except Exception:
-                st.error("Time series failed.")
-                st.exception(traceback.format_exc())
+                garch_model = tp.garch_models[target]
+                summary_text = garch_model.summary().as_text()
+                st.text(summary_text)
+            except:
+                st.info("GARCH summary not available")
+        else:
+            st.warning("GARCH model not available")
 
-        # actual vs predicted
-        if st.button("Actual vs Predicted"):
-            try:
-                ok = ensure_predictions_local(tp, target) if tp else False
-                if ok:
-                    act = tp.predictions[target]["actual"]
-                    pr = tp.predictions[target]["predicted"]
-                    dfp = pd.concat([act, pr], axis=1).dropna()
-                    dfp.columns = ["actual","pred"]
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=dfp.index, y=dfp["actual"], name="Actual", mode="lines"))
-                    fig.add_trace(go.Scatter(x=dfp.index, y=dfp["pred"], name="Predicted", mode="lines"))
-                    fig.update_layout(title=f"Actual vs Predicted ({target})", template=PLOTLY_TEMPLATE)
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    if dt_col in df.columns:
-                        s = df.sort_values(by=dt_col).set_index(dt_col)[target].dropna().astype(float)
-                        p = s.shift(1).dropna()
-                        s2 = s.loc[p.index]
-                        fig = go.Figure()
-                        fig.add_trace(go.Scatter(x=s2.index, y=s2.values, name="Actual", mode="lines"))
-                        fig.add_trace(go.Scatter(x=p.index, y=p.values, name="Prev-day", mode="lines"))
-                        fig.update_layout(title=f"Actual vs Prev-day ({target})", template=PLOTLY_TEMPLATE)
-                        st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.warning("No predictions and no datetime column for fallback.")
-            except Exception:
-                st.error("Actual vs Predicted failed.")
-                st.exception(traceback.format_exc())
-
-        # residuals histogram
-        if st.button("Residuals histogram"):
-            try:
-                ok = ensure_predictions_local(tp, target) if tp else False
-                if ok:
-                    act = tp.predictions[target]["actual"]; pr = tp.predictions[target]["predicted"]
-                    resid = (act - pr).dropna()
-                else:
-                    if dt_col in df.columns:
-                        s = df.sort_values(by=dt_col).set_index(dt_col)[target].dropna().astype(float)
-                        p = s.shift(1).dropna()
-                        resid = (s.loc[p.index] - p).dropna()
-                    else:
-                        resid = None
-                if resid is None or resid.empty:
-                    st.warning("No residuals to plot.")
-                else:
-                    fig = px.histogram(resid, nbins=40, title="Residuals", template=PLOTLY_TEMPLATE)
-                    st.plotly_chart(fig, use_container_width=True)
-            except Exception:
-                st.error("Residuals failed.")
-                st.exception(traceback.format_exc())
-
-        # ACF/PACF
-        if st.button("ACF & PACF"):
-            try:
-                ok = ensure_predictions_local(tp, target) if tp else False
-                if ok:
-                    act = tp.predictions[target]["actual"]; pr = tp.predictions[target]["predicted"]
-                    resid = (act - pr).dropna()
-                else:
-                    if dt_col in df.columns:
-                        s = df.sort_values(by=dt_col).set_index(dt_col)[target].dropna().astype(float)
-                        p = s.shift(1).dropna()
-                        resid = (s.loc[p.index] - p).dropna()
-                    else:
-                        resid = None
-                if resid is None or resid.empty:
-                    st.warning("No residuals for ACF/PACF.")
-                else:
-                    fig1 = plt.figure(figsize=(12,3))
-                    plot_acf(resid, lags=40, ax=fig1.add_subplot(111))
-                    buf = io.BytesIO(); fig1.tight_layout(); fig1.savefig(buf, format="png"); buf.seek(0)
-                    st.image(buf, caption="ACF", use_column_width=True); plt.close(fig1)
-                    fig2 = plt.figure(figsize=(12,3))
-                    plot_pacf(resid, lags=40, ax=fig2.add_subplot(111), method="ywm")
-                    buf2 = io.BytesIO(); fig2.tight_layout(); fig2.savefig(buf2, format="png"); buf2.seek(0)
-                    st.image(buf2, caption="PACF", use_column_width=True); plt.close(fig2)
-            except Exception:
-                st.error("ACF/PACF failed.")
-                st.exception(traceback.format_exc())
-
-        # rolling RMSE
-        if st.button("30-day rolling RMSE"):
-            try:
-                used = False
-                if tp is not None and hasattr(tp, "rolling_forecast_errors"):
-                    try:
-                        roll = tp.rolling_forecast_errors(target, window=30)
-                        if roll is not None:
-                            fig = px.line(x=roll.index, y=roll.values, title="30-day rolling RMSE", template=PLOTLY_TEMPLATE)
-                            st.plotly_chart(fig, use_container_width=True)
-                            used = True
-                    except Exception:
-                        pass
-                if not used:
-                    if tp is not None and getattr(tp, "predictions", None) and target in tp.predictions:
-                        act = tp.predictions[target]["actual"]; pr = tp.predictions[target]["predicted"]
-                        roll = safe_rolling_rmse_from_preds(act, pr, window=30)
-                        if roll is not None:
-                            fig = px.line(x=roll.index, y=roll.values, title="30-day rolling RMSE", template=PLOTLY_TEMPLATE)
-                            st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        if dt_col in df.columns:
-                            s = df.sort_values(by=dt_col).set_index(dt_col)[target].dropna().astype(float)
-                            if len(s) < 2:
-                                st.warning("Not enough data for naive RMSE fallback.")
-                            else:
-                                p = s.shift(1)
-                                comb = pd.concat([s,p], axis=1).dropna(); comb.columns=["actual","pred"]
-                                errs = comb["actual"] - comb["pred"]
-                                roll = np.sqrt((errs**2).rolling(window=30, min_periods=1).mean())
-                                fig = px.line(x=roll.index, y=roll.values, title="30-day rolling RMSE (naive)", template=PLOTLY_TEMPLATE)
-                                st.plotly_chart(fig, use_container_width=True)
-                        else:
-                            st.warning("No data for RMSE fallback.")
-            except Exception:
-                st.error("Rolling RMSE failed.")
-                st.exception(traceback.format_exc())
-
-        # volatility
-        if st.button("GARCH volatility"):
-            try:
-                shown = False
-                if tp is not None and hasattr(tp, "get_garch_volatility"):
-                    try:
-                        vol = tp.get_garch_volatility(target)
-                        if vol is not None:
-                            fig = px.line(x=vol.index, y=vol.values, title="GARCH conditional volatility", template=PLOTLY_TEMPLATE)
-                            st.plotly_chart(fig, use_container_width=True)
-                            shown = True
-                    except Exception:
-                        pass
-                if not shown:
-                    if tp is not None and getattr(tp, "predictions", None) and target in tp.predictions:
-                        act = tp.predictions[target]["actual"]; pr = tp.predictions[target]["predicted"]
-                        resid = (act - pr).dropna()
-                        vol_proxy = resid.rolling(window=30, min_periods=5).std()
-                        fig = px.line(x=vol_proxy.index, y=vol_proxy.values, title="Fallback volatility (30-day rolling std)", template=PLOTLY_TEMPLATE)
-                        st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        if dt_col in df.columns:
-                            s = df.sort_values(by=dt_col).set_index(dt_col)[target].dropna().astype(float)
-                            vol_proxy = s.rolling(window=30, min_periods=5).std()
-                            fig = px.line(x=vol_proxy.index, y=vol_proxy.values, title="Fallback volatility (30-day rolling std)", template=PLOTLY_TEMPLATE)
-                            st.plotly_chart(fig, use_container_width=True)
-                        else:
-                            st.warning("No data to compute volatility fallback.")
-            except Exception:
-                st.error("Volatility failed.")
-                st.exception(traceback.format_exc())
-
-    with tab_models:
-        st.subheader("Model Summaries (tabbed)")
-        ols_tab, arima_tab, garch_tab = st.tabs(["OLS", "ARIMA", "GARCH"])
-
-        with ols_tab:
-            st.markdown("#### OLS summaries")
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("Show maxtp OLS summary"):
-                    try:
-                        if tp is not None and hasattr(tp, "ols_models") and "maxtp" in tp.ols_models:
-                            st.text(tp.ols_models["maxtp"].summary().as_text())
-                        else:
-                            st.warning("maxtp OLS not available.")
-                    except Exception:
-                        st.error("Failed to show maxtp OLS.")
-                        st.exception(traceback.format_exc())
-            with c2:
-                if st.button("Show mintp OLS summary"):
-                    try:
-                        if tp is not None and hasattr(tp, "ols_models") and "mintp" in tp.ols_models:
-                            st.text(tp.ols_models["mintp"].summary().as_text())
-                        else:
-                            st.warning("mintp OLS not available.")
-                    except Exception:
-                        st.error("Failed to show mintp OLS.")
-                        st.exception(traceback.format_exc())
-
-        with arima_tab:
-            st.markdown("#### ARIMA summaries")
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("Show maxtp ARIMA summary"):
-                    try:
-                        if tp is not None and hasattr(tp, "arima_models") and "maxtp" in tp.arima_models:
-                            st.text(tp.arima_models["maxtp"].summary().as_text())
-                        else:
-                            st.warning("maxtp ARIMA not available.")
-                    except Exception:
-                        st.error("Failed to show maxtp ARIMA.")
-                        st.exception(traceback.format_exc())
-            with c2:
-                if st.button("Show mintp ARIMA summary"):
-                    try:
-                        if tp is not None and hasattr(tp, "arima_models") and "mintp" in tp.arima_models:
-                            st.text(tp.arima_models["mintp"].summary().as_text())
-                        else:
-                            st.warning("mintp ARIMA not available.")
-                    except Exception:
-                        st.error("Failed to show mintp ARIMA.")
-                        st.exception(traceback.format_exc())
-
-        with garch_tab:
-            st.markdown("#### GARCH summaries")
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("Show maxtp GARCH summary"):
-                    try:
-                        if tp is not None and hasattr(tp, "garch_models") and "maxtp" in tp.garch_models:
-                            gm = tp.garch_models["maxtp"]
-                            try:
-                                st.text(gm.summary().as_text())
-                            except Exception:
-                                st.text(str(gm))
-                        else:
-                            st.warning("maxtp GARCH not available.")
-                    except Exception:
-                        st.error("Failed to show maxtp GARCH.")
-                        st.exception(traceback.format_exc())
-            with c2:
-                if st.button("Show mintp GARCH summary"):
-                    try:
-                        if tp is not None and hasattr(tp, "garch_models") and "mintp" in tp.garch_models:
-                            gm = tp.garch_models["mintp"]
-                            try:
-                                st.text(gm.summary().as_text())
-                            except Exception:
-                                st.text(str(gm))
-                        else:
-                            st.warning("mintp GARCH not available.")
-                    except Exception:
-                        st.error("Failed to show mintp GARCH.")
-                        st.exception(traceback.format_exc())
-
-# ---------------------------
-# Page: Forecast & Downloads
-# ---------------------------
-elif page == "Forecast & Downloads":
-    st.header("Forecast & Downloads")
-    st.markdown("Single-date forecast, metrics and model artifacts.")
-
+elif page == "🔮 Forecasting":
+    st.markdown("""
+    <div class="main-header">
+        <h1>🔮 Temperature Forecasting</h1>
+        <p>Generate Future Temperature Predictions</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not tp:
+        st.warning("⚠️ No trained models available. Please train models first from the sidebar.")
+        st.stop()
+    
+    st.markdown('<div class="section-header">📝 Input Parameters</div>', unsafe_allow_html=True)
+    
     with st.form("forecast_form"):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            sun = st.number_input("sun (hours)", value=float(df["sun"].dropna().iloc[-1]) if "sun" in df.columns and not df["sun"].dropna().empty else 0.0)
-            soil = st.number_input("soil", value=float(df["soil"].dropna().iloc[-1]) if "soil" in df.columns and not df["soil"].dropna().empty else 0.0)
-        with c2:
-            rain = st.number_input("rain (mm)", value=float(df["rain"].dropna().iloc[-1]) if "rain" in df.columns and not df["rain"].dropna().empty else 0.0)
-            gmin = st.number_input("gmin", value=float(df["gmin"].dropna().iloc[-1]) if "gmin" in df.columns and not df["gmin"].dropna().empty else 0.0)
-        with c3:
-            wdsp = st.number_input("wdsp", value=float(df["wdsp"].dropna().iloc[-1]) if "wdsp" in df.columns and not df["wdsp"].dropna().empty else 0.0)
-            maxtp_y = st.number_input("maxtp yesterday", value=float(df["maxtp"].dropna().iloc[-1]) if not df["maxtp"].dropna().empty else 0.0)
-        forecast_date = st.date_input("Forecast date", value=datetime.now().date() + timedelta(days=1))
-        submitted = st.form_submit_button("Get forecast")
-        if submitted:
-            params = {
-                "sun": sun, "soil": soil, "rain": rain,
-                "gmin": gmin, "wdsp": wdsp,
-                "maxtp_yesterday": maxtp_y,
-                "mintp_yesterday": float(df["mintp"].dropna().iloc[-1]) if not df["mintp"].dropna().empty else None,
-                "forecast_date": pd.to_datetime(forecast_date)
-            }
-            if tp is not None:
-                try:
-                    out = tp.predict_from_dict(params)
-                    st.markdown("**Model outputs**")
-                    st.json(out)
-                    try:
-                        st.metric("Predicted MAX (Hybrid)", f"{out['maxtp']['Hybrid']:.2f} °C")
-                        st.metric("Predicted MIN (Hybrid)", f"{out['mintp']['Hybrid']:.2f} °C")
-                    except Exception:
-                        pass
-                except Exception:
-                    st.error("Prediction failed.")
-                    st.exception(traceback.format_exc())
-            else:
-                st.warning("Model not available. Add temp_predictor.py and retrain to enable predictions.")
-
-    st.markdown("---")
-    st.subheader("Metrics & artifacts")
-    if tp is not None and hasattr(tp, "get_metrics_df"):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("#### Weather Conditions")
+            sun = st.number_input("☀️ Sunshine (hours)", 
+                                 value=float(df["sun"].dropna().iloc[-1]) if "sun" in df.columns else 5.0,
+                                 min_value=0.0, max_value=24.0, step=0.1)
+            soil = st.number_input("🌱 Soil Temperature (°C)", 
+                                  value=float(df["soil"].dropna().iloc[-1]) if "soil" in df.columns else 10.0,
+                                  step=0.1)
+            rain = st.number_input("🌧️ Rainfall (mm)", 
+                                  value=float(df["rain"].dropna().iloc[-1]) if "rain" in df.columns else 0.0,
+                                  min_value=0.0, step=0.1)
+        
+        with col2:
+            st.markdown("#### Temperature History")
+            maxtp_y = st.number_input("🌡️ Yesterday's Max (°C)", 
+                                     value=float(df["maxtp"].dropna().iloc[-1]) if not df["maxtp"].dropna().empty else 15.0,
+                                     step=0.1)
+            mintp_y = st.number_input("❄️ Yesterday's Min (°C)", 
+                                     value=float(df["mintp"].dropna().iloc[-1]) if not df["mintp"].dropna().empty else 5.0,
+                                     step=0.1)
+        
+        with col3:
+            st.markdown("#### Other Factors")
+            gmin = st.number_input("🌡️ Ground Min Temp (°C)", 
+                                  value=float(df["gmin"].dropna().iloc[-1]) if "gmin" in df.columns else 5.0,
+                                  step=0.1)
+            wdsp = st.number_input("💨 Wind Speed (m/s)", 
+                                  value=float(df["wdsp"].dropna().iloc[-1]) if "wdsp" in df.columns else 10.0,
+                                  min_value=0.0, step=0.1)
+        
+        st.markdown("#### Forecast Date")
+        forecast_date = st.date_input("📅 Select Date", 
+                                     value=datetime.now().date() + timedelta(days=1))
+        
+        submitted = st.form_submit_button("🚀 Generate Forecast", use_container_width=True)
+    
+    if submitted:
+        params = {
+            "sun": sun,
+            "soil": soil,
+            "rain": rain,
+            "gmin": gmin,
+            "wdsp": wdsp,
+            "maxtp_yesterday": maxtp_y,
+            "mintp_yesterday": mintp_y,
+            "forecast_date": pd.to_datetime(forecast_date)
+        }
+        
         try:
-            metrics = tp.get_metrics_df()
-            st.dataframe(metrics)
-        except Exception:
-            st.warning("get_metrics_df failed.")
-            st.exception(traceback.format_exc())
-    else:
-        st.info("Metrics not available (tp missing).")
+            predictions = tp.predict_from_dict(params)
+            
+            st.markdown('<div class="section-header">🎯 Forecast Results</div>', unsafe_allow_html=True)
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                maxtp_hybrid = predictions.get("maxtp", {}).get("Hybrid", 0)
+                icon = weather_icon_for_temp(maxtp_hybrid, rain)
+                
+                st.markdown(f"""
+                <div class="metric-card" style="text-align: center;">
+                    <div class="forecast-icon">{icon}</div>
+                    <div class="metric-label">Predicted Max Temperature</div>
+                    <div class="metric-value">{maxtp_hybrid:.1f}°C</div>
+                    <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">
+                        {forecast_date.strftime('%B %d, %Y')}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                mintp_hybrid = predictions.get("mintp", {}).get("Hybrid", 0)
+                
+                st.markdown(f"""
+                <div class="metric-card" style="text-align: center;">
+                    <div class="forecast-icon">❄️</div>
+                    <div class="metric-label">Predicted Min Temperature</div>
+                    <div class="metric-value">{mintp_hybrid:.1f}°C</div>
+                    <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">
+                        {forecast_date.strftime('%B %d, %Y')}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                temp_range = maxtp_hybrid - mintp_hybrid
+                
+                st.markdown(f"""
+                <div class="metric-card" style="text-align: center;">
+                    <div class="forecast-icon">📊</div>
+                    <div class="metric-label">Temperature Range</div>
+                    <div class="metric-value">{temp_range:.1f}°C</div>
+                    <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">
+                        Daily Variation
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Model comparison
+            st.markdown('<div class="section-header">🔍 Model Comparison</div>', unsafe_allow_html=True)
+            
+            comparison_data = []
+            for temp_type in ["maxtp", "mintp"]:
+                pred = predictions.get(temp_type, {})
+                comparison_data.append({
+                    "Temperature": temp_type.upper(),
+                    "OLS": f"{pred.get('OLS', 0):.2f}°C" if pred.get('OLS') is not None else "N/A",
+                    "ARIMA": f"{pred.get('ARIMA', 0):.2f}°C" if pred.get('ARIMA') is not None else "N/A",
+                    "Hybrid": f"{pred.get('Hybrid', 0):.2f}°C"
+                })
+            
+            comparison_df = pd.DataFrame(comparison_data)
+            st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+            
+        except Exception as e:
+            st.error(f"Forecast generation failed: {str(e)}")
+            st.exception(e)
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Download models.pkl"):
+elif page == "📥 Export & Reports":
+    st.markdown("""
+    <div class="main-header">
+        <h1>📥 Export & Reports</h1>
+        <p>Download Data, Models & Generate Reports</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="section-header">📊 Data Export</div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📄 Raw Data")
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="⬇️ Download Data CSV",
+            data=csv,
+            file_name=f"temperature_data_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    
+    with col2:
+        st.markdown("### 📈 Statistics Summary")
+        summary_df = df.describe()
+        summary_csv = summary_df.to_csv().encode('utf-8')
+        st.download_button(
+            label="⬇️ Download Statistics CSV",
+            data=summary_csv,
+            file_name=f"statistics_summary_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    
+    if tp and hasattr(tp, "predictions"):
+        st.markdown('<div class="section-header">🤖 Model Exports</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 🔮 Predictions")
+            pred_data = []
+            for target in ["maxtp", "mintp"]:
+                if target in tp.predictions:
+                    actual = tp.predictions[target]["actual"]
+                    predicted = tp.predictions[target]["predicted"]
+                    for idx in actual.index:
+                        pred_data.append({
+                            "date": idx,
+                            f"{target}_actual": actual[idx],
+                            f"{target}_predicted": predicted[idx]
+                        })
+            
+            if pred_data:
+                pred_df = pd.DataFrame(pred_data)
+                pred_csv = pred_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="⬇️ Download Predictions CSV",
+                    data=pred_csv,
+                    file_name=f"model_predictions_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+        
+        with col2:
+            st.markdown("### 💾 Model Files")
             try:
-                if tp is not None:
-                    with open(PICKLE, "wb") as f:
-                        pickle.dump(tp, f)
-                    with open(PICKLE, "rb") as f:
-                        st.download_button("Download models.pkl", data=f, file_name="models.pkl")
-                else:
-                    st.warning("No trained model to download.")
-            except Exception:
-                st.error("Failed saving models.pkl")
-                st.exception(traceback.format_exc())
-    with c2:
-        if st.button("Download predictions CSV"):
-            try:
-                rows = []
-                if tp is not None and getattr(tp, "predictions", None):
-                    for t in ["maxtp","mintp"]:
-                        if t in tp.predictions:
-                            a = tp.predictions[t]["actual"]; p = tp.predictions[t]["predicted"]
-                            dfp = pd.DataFrame({"date": a.index, f"{t}_actual": a.values, f"{t}_predicted": p.values})
-                            rows.append(dfp)
-                if rows:
-                    out = pd.concat(rows, axis=1)
-                    csv_bytes = out.to_csv(index=False).encode("utf-8")
-                    st.download_button("Download predictions.csv", data=csv_bytes, file_name="predictions.csv", mime="text/csv")
-                else:
-                    st.warning("No predictions available.")
-            except Exception:
-                st.error("Failed creating CSV.")
-                st.exception(traceback.format_exc())
+                with open("models.pkl", "rb") as f:
+                    st.download_button(
+                        label="⬇️ Download Model (PKL)",
+                        data=f,
+                        file_name=f"trained_models_{datetime.now().strftime('%Y%m%d')}.pkl",
+                        mime="application/octet-stream",
+                        use_container_width=True
+                    )
+            except:
+                st.info("Model file not available")
+    
+    # Generate report
+    st.markdown('<div class="section-header">📋 Generate Report</div>', unsafe_allow_html=True)
+    
+    if st.button("📄 Generate Full Analysis Report", use_container_width=True):
+        report = f"""
+# Temperature Forecast Analysis Report
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-    st.markdown("---")
-    st.subheader("Auto 24-hour & 7-day forecast (latest row)")
-    try:
-        latest_row = df.sort_values(by=dt_col).iloc[-1] if dt_col in df.columns else df.iloc[-1]
-    except Exception:
-        latest_row = df.iloc[-1]
+## Dataset Overview
+- Total Records: {len(df):,}
+- Features: {len(df.columns)}
+- Date Range: {df[dt_col].min() if dt_col in df.columns else 'N/A'} to {df[dt_col].max() if dt_col in df.columns else 'N/A'}
 
-    if st.button("Generate 24-hour forecast"):
-        try:
-            res24 = generate_24h(tp, latest_row)
-            rows = []
-            for r in res24:
-                dtv = pd.to_datetime(r["forecast_date"])
-                ma = r["maxtp"]
-                ma_val = None
-                if isinstance(ma, dict) and "Hybrid" in ma:
-                    ma_val = ma["Hybrid"]
-                elif isinstance(ma, (int,float)):
-                    ma_val = ma
-                rows.append({"datetime": dtv, "maxtp": ma_val})
-            st.dataframe(pd.DataFrame(rows))
-        except Exception:
-            st.error("24-hour forecast failed.")
-            st.exception(traceback.format_exc())
+## Temperature Statistics
 
-    if st.button("Generate 7-day forecast"):
-        try:
-            res7 = generate_7day(tp, latest_row)
-            rows = []
-            for r in res7:
-                dtv = pd.to_datetime(r["forecast_date"]).date()
-                ma = r["maxtp"]
-                ma_val = None
-                if isinstance(ma, dict) and "Hybrid" in ma:
-                    ma_val = ma["Hybrid"]
-                elif isinstance(ma, (int,float)):
-                    ma_val = ma
-                rows.append({"date": dtv, "maxtp": ma_val})
-            st.dataframe(pd.DataFrame(rows))
-        except Exception:
-            st.error("7-day forecast failed.")
-            st.exception(traceback.format_exc())
+### Maximum Temperature
+- Mean: {df['maxtp'].mean():.2f}°C
+- Std Dev: {df['maxtp'].std():.2f}°C
+- Min: {df['maxtp'].min():.2f}°C
+- Max: {df['maxtp'].max():.2f}°C
+- Median: {df['maxtp'].median():.2f}°C
 
-# ---------------------------
-# Footer: data sample
-# ---------------------------
+### Minimum Temperature
+- Mean: {df['mintp'].mean():.2f}°C
+- Std Dev: {df['mintp'].std():.2f}°C
+- Min: {df['mintp'].min():.2f}°C
+- Max: {df['mintp'].max():.2f}°C
+- Median: {df['mintp'].median():.2f}°C
+"""
+        
+        if tp and hasattr(tp, "predictions"):
+            from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+            
+            report += "\n## Model Performance\n\n"
+            
+            for target in ["maxtp", "mintp"]:
+                if target in tp.predictions:
+                    actual = tp.predictions[target]["actual"]
+                    predicted = tp.predictions[target]["predicted"]
+                    
+                    r2 = r2_score(actual, predicted)
+                    mae = mean_absolute_error(actual, predicted)
+                    rmse = np.sqrt(mean_squared_error(actual, predicted))
+                    
+                    report += f"""
+### {target.upper()} Model
+- R² Score: {r2:.4f}
+- MAE: {mae:.3f}°C
+- RMSE: {rmse:.3f}°C
+"""
+        
+        st.download_button(
+            label="⬇️ Download Report (Markdown)",
+            data=report.encode('utf-8'),
+            file_name=f"analysis_report_{datetime.now().strftime('%Y%m%d')}.md",
+            mime="text/markdown",
+            use_container_width=True
+        )
+
+# Footer
 st.markdown("---")
-st.markdown("<div style='color:#cfe9ff; font-weight:700'>Data sample</div>", unsafe_allow_html=True)
-st.dataframe(df.head(50))
-
-
-
-
-
-
-
-
-
-
+st.markdown("""
+<div style='text-align: center; opacity: 0.7; padding: 2rem 0;'>
+    <p style='margin: 0;'>🌡️ Temperature Forecast Dashboard | Advanced Time Series Analysis</p>
+    <p style='margin: 0.5rem 0 0 0; font-size: 0.85rem;'>Built with Streamlit & Python</p>
+</div>
+""", unsafe_allow_html=True)
