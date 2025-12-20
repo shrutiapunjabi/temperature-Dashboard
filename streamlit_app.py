@@ -1035,25 +1035,25 @@ elif page == "🔮 Forecasting":
                     """)
                 st.markdown(forecast_html, unsafe_allow_html=True)
             
-            # Model comparison
-            st.markdown('<div class="section-header">🔍 Model Comparison</div>', unsafe_allow_html=True)
+        #     # Model comparison
+        #     st.markdown('<div class="section-header">🔍 Model Comparison</div>', unsafe_allow_html=True)
             
-            comparison_data = []
-            for temp_type in ["maxtp", "mintp"]:
-                pred = predictions.get(temp_type, {})
-                comparison_data.append({
-                    "Temperature": temp_type.upper(),
-                    "OLS": f"{pred.get('OLS', 0):.2f}°C" if pred.get('OLS') is not None else "N/A",
-                    "ARIMA": f"{pred.get('ARIMA', 0):.2f}°C" if pred.get('ARIMA') is not None else "N/A",
-                    "Hybrid": f"{pred.get('Hybrid', 0):.2f}°C"
-                })
+        #     comparison_data = []
+        #     for temp_type in ["maxtp", "mintp"]:
+        #         pred = predictions.get(temp_type, {})
+        #         comparison_data.append({
+        #             "Temperature": temp_type.upper(),
+        #             "OLS": f"{pred.get('OLS', 0):.2f}°C" if pred.get('OLS') is not None else "N/A",
+        #             "ARIMA": f"{pred.get('ARIMA', 0):.2f}°C" if pred.get('ARIMA') is not None else "N/A",
+        #             "Hybrid": f"{pred.get('Hybrid', 0):.2f}°C"
+        #         })
             
-            comparison_df = pd.DataFrame(comparison_data)
-            st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+        #     comparison_df = pd.DataFrame(comparison_data)
+        #     st.dataframe(comparison_df, use_container_width=True, hide_index=True)
             
-        except Exception as e:
-            st.error(f"Forecast generation failed: {str(e)}")
-            traceback.print_exc()
+        # except Exception as e:
+        #     st.error(f"Forecast generation failed: {str(e)}")
+        #     traceback.print_exc()
 
 elif page == "📥 Export & Reports":
     header_html = textwrap.dedent("""
@@ -1202,3 +1202,4 @@ footer_html = textwrap.dedent("""
     </div>
     """)
 st.markdown(footer_html, unsafe_allow_html=True)
+
