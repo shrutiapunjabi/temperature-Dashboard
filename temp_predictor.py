@@ -128,15 +128,24 @@ class TemperaturePredictor:
         except:
             print(f"⚠ ARIMA failed for {target}")
             self.arima_models[target] = None
-
     def arima_forecast_one(self, target):
-        model = self.arima_models.get(target)
-        if model is None:
-            return None
         try:
-            return float(model.forecast(1)[0])
-        except:
+            series = self.df[target]  # full history, not just train
+            model = ARIMA(series, order=(1,0,1)).fit()
+            return float(model.forecast(1).iloc[0])
+        except Exception as e:
+            print(f"ARIMA forecast failed for {target}: {e}")
             return None
+
+
+    # def arima_forecast_one(self, target):
+    #     model = self.arima_models.get(target)
+    #     if model is None:
+    #         return None
+    #     try:
+    #         return float(model.forecast(1)[0])
+    #     except:
+    #         return None
 
     # ----------------------------------------------------------
     # TRAIN GARCH
